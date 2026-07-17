@@ -2,12 +2,13 @@
 // Run with: node scripts/generateSamples.mjs
 // Deterministic (seeded PRNG) so the injected anomalies are stable across regenerations.
 
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(__dirname, '..', 'public', 'samples');
+mkdirSync(OUT_DIR, { recursive: true }); // git doesn't track this dir since its contents are gitignored
 
 const METERS_PER_DEG_LAT = 111320;
 const BASE_LAT = 37.8199;
