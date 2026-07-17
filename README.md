@@ -51,12 +51,21 @@ model-generated number.
 
 ## Flexible CSV schema
 
-Not every flight log in the wild carries the same columns. Only `timestamp`,
-`lat`, and `lon` are required — `altitude_m`, `speed_mps`, `battery_pct`,
-`satellite_count`, and `heading_deg` are each analyzed if the column is
-present and skipped if it isn't (`src/lib/csvParser.js` reports which ones
-were found). The detection engine only runs rules whose required fields
-exist (`src/lib/detectionEngine.js`'s `RULE_REQUIRED_FIELDS`), so the
-confidence denominator reflects how many rules could actually be checked,
-not always 5. The HUD, telemetry chart, and report panel likewise only
-render the fields the uploaded file actually has.
+Not every flight log in the wild carries the same columns. Only a timestamp,
+latitude, and longitude column are required — everything else is analyzed if
+present and skipped if it isn't. `src/lib/csvParser.js` recognizes both this
+app's own column names and common alternates (e.g. a MAVROS/ROS bag CSV
+export's `%time`, `field.latitude`, `field.velocity.x/y/z`, `field.yaw`), and
+derives fields it doesn't have directly: speed from a 3-axis velocity vector,
+heading in degrees from a yaw angle in radians, and ISO timestamps from
+nanosecond/second epoch values. The detection engine only runs rules whose
+required fields exist (`RULE_REQUIRED_FIELDS` in `src/lib/detectionEngine.js`),
+so the confidence denominator reflects how many rules could actually be
+checked, not always 5. The HUD, telemetry chart, and report panel likewise
+only render the fields the uploaded file actually has.
+
+If the uploaded filename hints at a failure type (e.g.
+`battery_failure_log.csv`), that's shown as a small "filed as" tag next to
+the source name (`src/lib/filenameLabel.js`) — purely for context. It's never
+fed into the detection engine or the verdict, which come from telemetry
+alone; a mislabeled filename won't change the analysis.

@@ -33,6 +33,16 @@
   font-size: 13px;
 }
 
+.replay-filename-tag {
+  font-size: 11px;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 7px;
+  letter-spacing: 0.02em;
+  cursor: help;
+}
+
 .replay-reset {
   background: transparent;
   border: 1px solid var(--border-bright);

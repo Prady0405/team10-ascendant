@@ -2,12 +2,13 @@ import { useCallback, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Landing from './components/Landing/Landing.jsx';
 import ReplayView from './components/Replay/ReplayView.jsx';
+import { labelFromFilename } from './lib/filenameLabel.js';
 
 export default function App() {
   const [flight, setFlight] = useState(null);
 
   const handleLoad = useCallback(({ rows, availableFields }, label) => {
-    setFlight({ rows, availableFields, label });
+    setFlight({ rows, availableFields, label, reportedLabel: labelFromFilename(label) });
   }, []);
 
   const handleReset = useCallback(() => setFlight(null), []);
@@ -26,6 +27,7 @@ export default function App() {
             rows={flight.rows}
             availableFields={flight.availableFields}
             sourceLabel={flight.label}
+            reportedLabel={flight.reportedLabel}
             onReset={handleReset}
           />
         </motion.div>

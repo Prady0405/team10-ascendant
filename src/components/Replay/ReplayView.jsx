@@ -10,7 +10,7 @@ import Controls from './Controls.jsx';
 import ReportPanel from '../Report/ReportPanel.jsx';
 import './ReplayView.css';
 
-export default function ReplayView({ rows, availableFields, sourceLabel, onReset }) {
+export default function ReplayView({ rows, availableFields, sourceLabel, reportedLabel, onReset }) {
   const detection = useMemo(() => runDetectionEngine(rows, availableFields), [rows, availableFields]);
   const [narration, setNarration] = useState(null);
   const [narrationLoading, setNarrationLoading] = useState(true);
@@ -42,6 +42,11 @@ export default function ReplayView({ rows, availableFields, sourceLabel, onReset
           <div className="replay-heading">
             <span className="replay-title mono">BLACK BOX</span>
             <span className="replay-source mono">{sourceLabel}</span>
+            {reportedLabel && reportedLabel !== sourceLabel && (
+              <span className="replay-filename-tag mono" title="Extracted from the filename — not analysis. Only the VERDICT panel below is derived from telemetry.">
+                filed as: {reportedLabel}
+              </span>
+            )}
           </div>
           <button className="replay-reset" onClick={onReset}>
             New Flight
