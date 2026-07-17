@@ -10,8 +10,8 @@ import Controls from './Controls.jsx';
 import ReportPanel from '../Report/ReportPanel.jsx';
 import './ReplayView.css';
 
-export default function ReplayView({ rows, sourceLabel, onReset }) {
-  const detection = useMemo(() => runDetectionEngine(rows), [rows]);
+export default function ReplayView({ rows, availableFields, sourceLabel, onReset }) {
+  const detection = useMemo(() => runDetectionEngine(rows, availableFields), [rows, availableFields]);
   const [narration, setNarration] = useState(null);
   const [narrationLoading, setNarrationLoading] = useState(true);
 
@@ -31,7 +31,7 @@ export default function ReplayView({ rows, sourceLabel, onReset }) {
   }, [detection]);
 
   return (
-    <TimelineProvider rows={rows}>
+    <TimelineProvider rows={rows} availableFields={availableFields}>
       <motion.div
         className="replay-view"
         initial={{ opacity: 0 }}

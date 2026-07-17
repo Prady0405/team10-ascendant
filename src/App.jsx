@@ -6,8 +6,8 @@ import ReplayView from './components/Replay/ReplayView.jsx';
 export default function App() {
   const [flight, setFlight] = useState(null);
 
-  const handleLoad = useCallback((rows, label) => {
-    setFlight({ rows, label });
+  const handleLoad = useCallback(({ rows, availableFields }, label) => {
+    setFlight({ rows, availableFields, label });
   }, []);
 
   const handleReset = useCallback(() => setFlight(null), []);
@@ -22,7 +22,12 @@ export default function App() {
           exit={{ opacity: 0 }}
           style={{ display: 'flex', flexDirection: 'column', flex: 1 }}
         >
-          <ReplayView rows={flight.rows} sourceLabel={flight.label} onReset={handleReset} />
+          <ReplayView
+            rows={flight.rows}
+            availableFields={flight.availableFields}
+            sourceLabel={flight.label}
+            onReset={handleReset}
+          />
         </motion.div>
       ) : (
         <motion.div

@@ -40,7 +40,7 @@ export default function FlightMap() {
   const { rows, currentRow, highlightField } = useTimeline();
   const path = useMemo(() => rows.map((r) => [r.lat, r.lon]), [rows]);
   const icon = useMemo(
-    () => droneIcon(currentRow.heading_deg, highlightField === 'lat' || highlightField === 'lon'),
+    () => droneIcon(currentRow.heading_deg ?? 0, highlightField === 'lat' || highlightField === 'lon'),
     [currentRow.heading_deg, highlightField]
   );
 

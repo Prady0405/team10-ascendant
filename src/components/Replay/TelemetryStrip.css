@@ -5,6 +5,13 @@
   padding: 8px 4px 10px;
 }
 
+.telemetry-strip-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
 .telemetry-legend {
   display: flex;
   gap: 18px;

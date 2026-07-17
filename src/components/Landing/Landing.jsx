@@ -15,8 +15,8 @@ export default function Landing({ onLoad }) {
       setError(null);
       try {
         const text = await file.text();
-        const rows = parseFlightLogCSV(text);
-        onLoad(rows, file.name);
+        const parsed = parseFlightLogCSV(text);
+        onLoad(parsed, file.name);
       } catch (err) {
         setError(err instanceof FlightLogParseError ? err.message : 'Could not read that file.');
       }
@@ -38,8 +38,8 @@ export default function Landing({ onLoad }) {
       const res = await fetch(scenario.file);
       if (!res.ok) throw new Error('fetch failed');
       const text = await res.text();
-      const rows = parseFlightLogCSV(text);
-      onLoad(rows, scenario.label);
+      const parsed = parseFlightLogCSV(text);
+      onLoad(parsed, scenario.label);
     } catch {
       setError(`Could not load the ${scenario.label} sample.`);
     } finally {
@@ -92,7 +92,8 @@ export default function Landing({ onLoad }) {
         />
         <p className="landing-dropzone-title mono">DROP FLIGHT LOG (.CSV) OR CLICK TO BROWSE</p>
         <p className="landing-schema mono">
-          timestamp, lat, lon, altitude_m, speed_mps, battery_pct, satellite_count, heading_deg
+          required: timestamp, lat, lon — optional, analyzed if present: altitude_m, speed_mps,
+          battery_pct, satellite_count, heading_deg
         </p>
       </motion.section>
 

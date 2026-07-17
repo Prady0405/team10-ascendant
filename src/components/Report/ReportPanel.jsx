@@ -23,6 +23,12 @@ export default function ReportPanel({ detection, narration, loading }) {
       <div className="report-narrative">
         <span className="report-narrative-title mono">FLIGHT NARRATIVE</span>
 
+        {detection.fieldsUnavailable.length > 0 && (
+          <p className="report-unavailable">
+            Not present in this log — skipped: {detection.fieldsUnavailable.join(', ')}
+          </p>
+        )}
+
         {loading && <p className="report-loading mono">ANALYZING TELEMETRY…</p>}
 
         {!loading && narration.narrative.length === 0 && (

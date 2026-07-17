@@ -1,12 +1,16 @@
 import Papa from 'papaparse';
 
-const NUMERIC_FIELDS = ['lat', 'lon', 'altitude_m', 'speed_mps', 'battery_pct', 'satellite_count', 'heading_deg'];
-export const REQUIRED_COLUMNS = ['timestamp', ...NUMERIC_FIELDS];
+// Every flight log must have a position and a time — that's the only fixed
+// schema. Everything else is analyzed if the column is present and skipped
+// if it isn't, since real-world logs don't all carry the same instruments.
+const REQUIRED_COLUMNS = ['timestamp', 'lat', 'lon'];
+export const OPTIONAL_NUMERIC_FIELDS = ['altitude_m', 'speed_mps', 'battery_pct', 'satellite_count', 'heading_deg'];
 
 export class FlightLogParseError extends Error {}
 
-// Parses raw CSV text into an array of telemetry rows, validating the schema.
-// Throws FlightLogParseError with a human-readable message on malformed input.
+// Parses raw CSV text into { rows, availableFields }. `availableFields` is the
+// subset of OPTIONAL_NUMERIC_FIELDS actually present as columns in this file —
+// the detection engine and UI use it to only analyze/display what's really there.
 export function parseFlightLogCSV(csvText) {
   const result = Papa.parse(csvText.trim(), {
     header: true,
@@ -18,20 +22,25 @@ export function parseFlightLogCSV(csvText) {
     throw new FlightLogParseError(`CSV parse error: ${result.errors[0].message}`);
   }
 
-  const rows = result.data;
-  if (rows.length === 0) {
+  const data = result.data;
+  if (data.length === 0) {
     throw new FlightLogParseError('CSV contains no data rows.');
   }
 
-  const columns = Object.keys(rows[0]);
+  const columns = Object.keys(data[0]);
   const missing = REQUIRED_COLUMNS.filter((c) => !columns.includes(c));
   if (missing.length > 0) {
-    throw new FlightLogParseError(`CSV is missing required column(s): ${missing.join(', ')}`);
+    throw new FlightLogParseError(
+      `CSV is missing required column(s): ${missing.join(', ')}. Every flight log needs at least timestamp, lat, and lon.`
+    );
   }
 
-  return rows.map((row, i) => {
+  const availableFields = OPTIONAL_NUMERIC_FIELDS.filter((f) => columns.includes(f));
+  const fieldsToParse = ['lat', 'lon', ...availableFields];
+
+  const rows = data.map((row, i) => {
     const parsed = { timestamp: row.timestamp };
-    for (const field of NUMERIC_FIELDS) {
+    for (const field of fieldsToParse) {
       const value = Number(row[field]);
       if (Number.isNaN(value)) {
         throw new FlightLogParseError(`Row ${i + 1}: "${field}" is not a number (got "${row[field]}").`);
@@ -40,4 +49,6 @@ export function parseFlightLogCSV(csvText) {
     }
     return parsed;
   });
+
+  return { rows, availableFields };
 }

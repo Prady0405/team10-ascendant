@@ -24,7 +24,7 @@ function findClosestIndexByTimestamp(rows, timestamp) {
 // Single source of truth for playback position. The map, HUD, telemetry chart,
 // and scrubber all read `currentIndex`/`currentRow` from here and nothing else,
 // so they can never drift out of sync with one another.
-export function TimelineProvider({ rows, children }) {
+export function TimelineProvider({ rows, availableFields = [], children }) {
   const [currentIndex, setCurrentIndexState] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [highlightField, setHighlightField] = useState(null);
@@ -116,6 +116,7 @@ export function TimelineProvider({ rows, children }) {
   const value = useMemo(
     () => ({
       rows,
+      availableFields,
       currentIndex,
       currentRow: rows[currentIndex],
       playing,
@@ -131,6 +132,7 @@ export function TimelineProvider({ rows, children }) {
     }),
     [
       rows,
+      availableFields,
       currentIndex,
       playing,
       play,

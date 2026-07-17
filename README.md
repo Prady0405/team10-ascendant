@@ -48,3 +48,15 @@ produce `{ type, timestamp, description, evidence }` events. The confidence
 fraction shown in the UI (e.g. "2/5 signals confirm this cause") is a count of
 how many of those five rules agree on the same root cause, never a
 model-generated number.
+
+## Flexible CSV schema
+
+Not every flight log in the wild carries the same columns. Only `timestamp`,
+`lat`, and `lon` are required — `altitude_m`, `speed_mps`, `battery_pct`,
+`satellite_count`, and `heading_deg` are each analyzed if the column is
+present and skipped if it isn't (`src/lib/csvParser.js` reports which ones
+were found). The detection engine only runs rules whose required fields
+exist (`src/lib/detectionEngine.js`'s `RULE_REQUIRED_FIELDS`), so the
+confidence denominator reflects how many rules could actually be checked,
+not always 5. The HUD, telemetry chart, and report panel likewise only
+render the fields the uploaded file actually has.

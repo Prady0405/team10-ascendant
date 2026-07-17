@@ -3,6 +3,7 @@
 // { type, timestamp, description, evidence: { field, value, threshold } }
 
 import { haversineDistanceMeters, headingDeltaDeg, centroid, secondsBetween } from './geo.js';
+import { OPTIONAL_NUMERIC_FIELDS } from './csvParser.js';
 
 export const RULE_TYPES = [
   'signal_loss',
@@ -11,6 +12,20 @@ export const RULE_TYPES = [
   'erratic_flight',
   'loiter',
 ];
+
+// Fields each rule needs to be evaluated at all. Real-world logs don't all
+// carry the same instruments, so a rule whose fields are missing from the
+// uploaded CSV is skipped entirely rather than run against absent data —
+// it never counts toward "rules checked" and never appears in the report.
+// lat/lon (and therefore erratic_flight and loiter) are always available,
+// since every parsed flight log has a position.
+const RULE_REQUIRED_FIELDS = {
+  signal_loss: ['satellite_count'],
+  impact: ['altitude_m', 'speed_mps'],
+  battery_anomaly: ['battery_pct'],
+  erratic_flight: [],
+  loiter: [],
+};
 
 // Rule 1 — Signal loss: satellite_count drops below 3 for more than 2 consecutive readings.
 export function detectSignalLoss(rows) {
@@ -268,14 +283,22 @@ export const ROOT_CAUSE_LABELS = {
   none: 'No anomaly detected — flight nominal',
 };
 
-// Runs every rule against the telemetry and derives a root cause + confidence fraction.
-export function runDetectionEngine(rows) {
+// Runs every applicable rule against the telemetry and derives a root cause +
+// confidence fraction. `availableFields` is the OPTIONAL_NUMERIC_FIELDS subset
+// actually present in the source CSV (see csvParser.js); it defaults to "all
+// of them" so existing callers that don't pass it keep checking every rule.
+export function runDetectionEngine(rows, availableFields = OPTIONAL_NUMERIC_FIELDS) {
+  const applicableTypes = RULE_TYPES.filter((type) =>
+    RULE_REQUIRED_FIELDS[type].every((field) => availableFields.includes(field))
+  );
+  const skippedTypes = RULE_TYPES.filter((type) => !applicableTypes.includes(type));
+
   const eventsByType = {};
-  for (const type of RULE_TYPES) {
+  for (const type of applicableTypes) {
     eventsByType[type] = RULES[type](rows);
   }
 
-  const firedTypes = RULE_TYPES.filter((type) => eventsByType[type].length > 0);
+  const firedTypes = applicableTypes.filter((type) => eventsByType[type].length > 0);
 
   const causeVotes = {};
   for (const type of firedTypes) {
@@ -293,10 +316,12 @@ export function runDetectionEngine(rows) {
     }
   }
 
-  const rulesChecked = RULE_TYPES.length;
-  const allEvents = RULE_TYPES.flatMap((type) => eventsByType[type]).sort(
+  const rulesChecked = applicableTypes.length;
+  const allEvents = applicableTypes.flatMap((type) => eventsByType[type]).sort(
     (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
   );
+
+  const fieldsUnavailable = OPTIONAL_NUMERIC_FIELDS.filter((f) => !availableFields.includes(f));
 
   return {
     events: allEvents,
@@ -305,5 +330,8 @@ export function runDetectionEngine(rows) {
     rootCauseLabel: ROOT_CAUSE_LABELS[rootCause],
     confidence: { agreeing: agreeingRules, checked: rulesChecked },
     confidenceLabel: `${agreeingRules}/${rulesChecked}`,
+    applicableRules: applicableTypes,
+    skippedRules: skippedTypes,
+    fieldsUnavailable,
   };
 }

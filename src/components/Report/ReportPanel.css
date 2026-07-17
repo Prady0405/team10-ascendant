@@ -26,6 +26,13 @@
   font-size: 13px;
 }
 
+.report-unavailable {
+  color: var(--text-dim);
+  font-size: 11px;
+  border-left: 2px solid var(--border-bright);
+  padding-left: 8px;
+}
+
 .report-lines {
   list-style: none;
   margin: 0;

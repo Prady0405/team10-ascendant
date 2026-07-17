@@ -15,6 +15,12 @@
   margin-bottom: 8px;
 }
 
+.hud-empty {
+  color: var(--text-dim);
+  font-size: 13px;
+  padding: 8px 6px 4px;
+}
+
 .hud-row {
   display: flex;
   align-items: center;

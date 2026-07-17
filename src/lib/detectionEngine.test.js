@@ -177,3 +177,40 @@ describe('runDetectionEngine', () => {
     expect(Object.keys(result.eventsByType)).toHaveLength(5);
   });
 });
+
+describe('runDetectionEngine with a restricted field set', () => {
+  it('only checks rules whose fields are present when a CSV lacks most columns', () => {
+    // position-only log: satellite_count, altitude_m, speed_mps, battery_pct, heading_deg all absent
+    const rows = buildNominalFlight(60).map(({ lat, lon, timestamp }) => ({ lat, lon, timestamp }));
+    const result = runDetectionEngine(rows, []);
+    expect(result.applicableRules.sort()).toEqual(['erratic_flight', 'loiter'].sort());
+    expect(result.skippedRules.sort()).toEqual(['battery_anomaly', 'impact', 'signal_loss'].sort());
+    expect(result.confidence.checked).toBe(2);
+    expect(result.fieldsUnavailable.sort()).toEqual(
+      ['altitude_m', 'battery_pct', 'heading_deg', 'satellite_count', 'speed_mps'].sort()
+    );
+  });
+
+  it('only runs battery_anomaly (plus the always-on rules) when only battery_pct is present', () => {
+    let battery = 100;
+    const rows = buildNominalFlight(100, (i) => {
+      battery -= i < 90 ? 0.05 : 0.4;
+      return { battery_pct: battery };
+    }).map(({ lat, lon, timestamp, battery_pct }) => ({ lat, lon, timestamp, battery_pct }));
+
+    const result = runDetectionEngine(rows, ['battery_pct']);
+    expect(result.applicableRules.sort()).toEqual(['battery_anomaly', 'erratic_flight', 'loiter'].sort());
+    expect(result.confidence.checked).toBe(3);
+    expect(result.eventsByType.battery_anomaly.length).toBeGreaterThanOrEqual(1);
+    expect(result.eventsByType.signal_loss).toBeUndefined();
+    expect(result.rootCause).toBe('battery_failure');
+  });
+
+  it('defaults to checking every rule when availableFields is omitted', () => {
+    const rows = buildNominalFlight(60);
+    const result = runDetectionEngine(rows);
+    expect(result.applicableRules).toHaveLength(5);
+    expect(result.skippedRules).toHaveLength(0);
+    expect(result.fieldsUnavailable).toHaveLength(0);
+  });
+});
