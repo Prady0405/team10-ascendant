@@ -8,6 +8,7 @@ import HUD from './HUD.jsx';
 import TelemetryStrip from './TelemetryStrip.jsx';
 import Controls from './Controls.jsx';
 import ReportPanel from '../Report/ReportPanel.jsx';
+import FlightSummary from '../Report/FlightSummary.jsx';
 import './ReplayView.css';
 
 export default function ReplayView({
@@ -75,6 +76,14 @@ export default function ReplayView({
             <ReportPanel detection={detection} narration={narration} loading={narrationLoading} />
           </div>
         </div>
+
+        <FlightSummary
+          rows={rows}
+          detection={detection}
+          availableFields={availableFields}
+          hasPosition={hasPosition}
+          positionSource={positionSource}
+        />
       </motion.div>
     </TimelineProvider>
   );

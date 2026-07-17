@@ -73,6 +73,24 @@ export default function HUD() {
         </HUDRow>
       )}
 
+      {has('accel_mps2') && (
+        <HUDRow label="ACCEL" pulsing={pulsing('accel_mps2')}>
+          <span className="hud-value mono">
+            {currentRow.accel_mps2.toFixed(2)}
+            <span className="hud-unit">m/s²</span>
+          </span>
+        </HUDRow>
+      )}
+
+      {has('yaw_rate_dps') && (
+        <HUDRow label="YAW RATE" pulsing={pulsing('yaw_rate_dps')}>
+          <span className="hud-value mono">
+            {currentRow.yaw_rate_dps.toFixed(1)}
+            <span className="hud-unit">deg/s</span>
+          </span>
+        </HUDRow>
+      )}
+
       {availableFields.length === 0 && (
         <p className="hud-empty">Position only — no other instrument fields in this log.</p>
       )}

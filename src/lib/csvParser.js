@@ -4,7 +4,15 @@ import Papa from 'papaparse';
 // field are analyzed if a recognized column is present and skipped if it
 // isn't, since real-world logs (this app's own sample schema, MAVROS/ROS
 // bag CSV exports, etc.) don't all carry the same columns or units.
-export const OPTIONAL_NUMERIC_FIELDS = ['altitude_m', 'speed_mps', 'battery_pct', 'satellite_count', 'heading_deg'];
+export const OPTIONAL_NUMERIC_FIELDS = [
+  'altitude_m',
+  'speed_mps',
+  'battery_pct',
+  'satellite_count',
+  'heading_deg',
+  'accel_mps2',
+  'yaw_rate_dps',
+];
 
 // A reference origin used only to plot a *local*-frame flight (position.x/y
 // in meters, common in ROS PositionTarget-style logs with no GPS) onto the
@@ -17,6 +25,9 @@ const METERS_PER_DEG_LAT = 111320;
 // Column-name aliases for each canonical field, checked in priority order.
 // Covers this app's own schema plus common MAVROS/ROS bag CSV export names
 // (e.g. a mavros_msgs/PositionTarget topic dumped with `rostopic echo -p`).
+// field.position.z is listed after the explicit altitude names so a file
+// that has both an explicit altitude column and a local Z position prefers
+// the explicit one.
 const COLUMN_ALIASES = {
   timestamp: ['timestamp', '%time', 'time', 'field.header.stamp'],
   lat: ['lat', 'latitude', 'field.latitude', 'field.lat', 'gps_lat', 'gps_latitude'],
@@ -31,7 +42,7 @@ const COLUMN_ALIASES = {
     'gps_lng',
     'gps_longitude',
   ],
-  altitude_m: ['altitude_m', 'altitude', 'alt', 'field.altitude'],
+  altitude_m: ['altitude_m', 'altitude', 'alt', 'field.altitude', 'field.position.z'],
   battery_pct: ['battery_pct', 'battery', 'battery_percent', 'battery_percentage', 'field.battery_remaining'],
   satellite_count: ['satellite_count', 'satellites', 'num_satellites', 'sats', 'field.satellites_visible'],
   heading_deg: ['heading_deg', 'heading', 'field.heading'],
@@ -39,7 +50,8 @@ const COLUMN_ALIASES = {
 };
 
 // Component columns for fields this app can derive when there's no direct
-// column for them — a 3-axis velocity vector implies a scalar speed, a yaw
+// column for them — a 3-axis velocity vector implies a scalar speed, a
+// 3-axis acceleration/force vector implies a scalar acceleration, a yaw
 // angle in radians implies a heading in degrees, and a local x/y position
 // (meters from an arbitrary origin, no GPS) implies a plottable lat/lon.
 const VELOCITY_COMPONENT_ALIASES = {
@@ -47,11 +59,17 @@ const VELOCITY_COMPONENT_ALIASES = {
   y: ['field.velocity.y', 'velocity_y', 'velocity.y', 'vel_y'],
   z: ['field.velocity.z', 'velocity_z', 'velocity.z', 'vel_z'],
 };
+const ACCEL_COMPONENT_ALIASES = {
+  x: ['field.acceleration_or_force.x', 'acceleration_x', 'accel_x', 'acceleration.x'],
+  y: ['field.acceleration_or_force.y', 'acceleration_y', 'accel_y', 'acceleration.y'],
+  z: ['field.acceleration_or_force.z', 'acceleration_z', 'accel_z', 'acceleration.z'],
+};
 const LOCAL_POSITION_COMPONENT_ALIASES = {
   x: ['field.position.x', 'position.x', 'position_x', 'local_x', 'pos_x'],
   y: ['field.position.y', 'position.y', 'position_y', 'local_y', 'pos_y'],
 };
 const YAW_ALIASES = ['field.yaw', 'yaw', 'yaw_rad'];
+const YAW_RATE_ALIASES = ['field.yaw_rate', 'yaw_rate', 'yaw_rate_rad', 'yaw_rate_dps'];
 
 export class FlightLogParseError extends Error {}
 
@@ -154,7 +172,15 @@ export function parseFlightLogCSV(csvText) {
   };
   const canDeriveSpeed = !speedCol && velocityCols.x && velocityCols.y && velocityCols.z;
 
+  const accelCols = {
+    x: resolveColumn(columns, ACCEL_COMPONENT_ALIASES.x),
+    y: resolveColumn(columns, ACCEL_COMPONENT_ALIASES.y),
+    z: resolveColumn(columns, ACCEL_COMPONENT_ALIASES.z),
+  };
+  const canDeriveAccel = accelCols.x && accelCols.y && accelCols.z;
+
   const yawCol = !headingCol ? resolveColumn(columns, YAW_ALIASES) : null;
+  const yawRateCol = resolveColumn(columns, YAW_RATE_ALIASES);
 
   const availableFields = [];
   if (altCol) availableFields.push('altitude_m');
@@ -162,6 +188,8 @@ export function parseFlightLogCSV(csvText) {
   if (satCol) availableFields.push('satellite_count');
   if (headingCol || yawCol) availableFields.push('heading_deg');
   if (speedCol || canDeriveSpeed) availableFields.push('speed_mps');
+  if (canDeriveAccel) availableFields.push('accel_mps2');
+  if (yawRateCol) availableFields.push('yaw_rate_dps');
 
   const readNumber = (row, col, label, rowIndex) => {
     const value = Number(row[col]);
@@ -203,6 +231,18 @@ export function parseFlightLogCSV(csvText) {
       const vy = readNumber(row, velocityCols.y, 'velocity.y', i);
       const vz = readNumber(row, velocityCols.z, 'velocity.z', i);
       parsed.speed_mps = Math.sqrt(vx * vx + vy * vy + vz * vz);
+    }
+
+    if (canDeriveAccel) {
+      const ax = readNumber(row, accelCols.x, 'acceleration.x', i);
+      const ay = readNumber(row, accelCols.y, 'acceleration.y', i);
+      const az = readNumber(row, accelCols.z, 'acceleration.z', i);
+      parsed.accel_mps2 = Math.sqrt(ax * ax + ay * ay + az * az);
+    }
+
+    if (yawRateCol) {
+      const yawRateRad = readNumber(row, yawRateCol, 'yaw_rate', i);
+      parsed.yaw_rate_dps = (yawRateRad * 180) / Math.PI;
     }
 
     return parsed;

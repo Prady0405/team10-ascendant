@@ -42,12 +42,29 @@ the model.
 ## Detection engine
 
 `src/lib/detectionEngine.js` is pure, dependency-free, and unit tested
-(`src/lib/detectionEngine.test.js`). Five independent rules — signal loss,
-impact/crash, battery anomaly, erratic flight, and loiter pattern — each
-produce `{ type, timestamp, description, evidence }` events. The confidence
-fraction shown in the UI (e.g. "2/5 signals confirm this cause") is a count of
-how many of those five rules agree on the same root cause, never a
-model-generated number.
+(`src/lib/detectionEngine.test.js`). Six independent rules — signal loss,
+impact/crash, battery anomaly, erratic flight, loiter pattern, and sustained
+altitude loss — each produce `{ type, timestamp, description, evidence }`
+events. The confidence fraction shown in the UI (e.g. "2/6 signals confirm
+this cause") is a count of how many of those rules agree on the same root
+cause, never a model-generated number.
+
+Every rule's window is defined in elapsed **time**, not reading count. Real
+logs sample at wildly different rates — this app's synthetic samples are
+~1Hz, a real MAVROS setpoint stream can be ~50Hz+ — so a count-based window
+(e.g. "3 readings") would fire dozens of times too eagerly on a fast log and
+never fire on a slow one; a time-based window ("3 seconds") behaves the same
+regardless of sample rate. `erratic_flight` also averages position over a
+rolling window rather than comparing consecutive rows, because a commanded
+setpoint stream commonly updates its target at a lower rate than the log
+itself, so most rows repeat the same value and then jump in a discrete step —
+dividing that step by a near-zero single-row `dt` looks like an impossible
+speed that never actually happened. All of this was found and fixed against
+a real ~53Hz MAVROS `setpoint_raw/local` engine-failure log, which also
+exposed a genuine altitude drop (50m → 31m over the flight's final 16s) that
+the original near-zero-altitude `impact` rule couldn't see — hence
+`altitude_loss`, which catches a descent in progress even when the log ends
+before the aircraft reaches the ground.
 
 ## Flexible CSV schema
 
@@ -72,7 +89,23 @@ The HUD, telemetry chart, and report panel likewise only render the fields
 the uploaded file actually has.
 
 If the uploaded filename hints at a failure type (e.g.
-`battery_failure_log.csv`), that's shown as a small "filed as" tag next to
-the source name (`src/lib/filenameLabel.js`) — purely for context. It's never
-fed into the detection engine or the verdict, which come from telemetry
-alone; a mislabeled filename won't change the analysis.
+`battery_failure_log.csv`, `engine_failure_...csv`), that's shown as a small
+"filed as" tag next to the source name (`src/lib/filenameLabel.js`) — purely
+for context. It's never fed into the detection engine or the verdict, which
+come from telemetry alone; a mislabeled filename won't change the analysis.
+
+Also derived when present: acceleration magnitude (`accel_mps2`, from a
+3-axis acceleration/force vector) and yaw rate in degrees/second
+(`yaw_rate_dps`, from a raw rad/s field) — both shown in the HUD and
+telemetry chart alongside altitude, speed, battery, and satellites.
+
+## Flight summary
+
+Below the map, HUD, and report sits a plain-English paragraph
+(`src/lib/flightSummary.js`, rendered by
+`src/components/Report/FlightSummary.jsx`) synthesizing the whole flight:
+duration, ground track distance, the range of every telemetry field this
+specific file actually has, the deterministic verdict and its confidence
+fraction, and which fields were absent and therefore not analyzed. Every
+number in it is read straight off the parsed rows or the rules engine's own
+result — nothing is invented, same as everywhere else in this app.

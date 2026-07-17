@@ -11,6 +11,8 @@ const CHART_FIELDS = [
   { field: 'battery_pct', axisId: 'pct', domain: [0, 100], color: '#ffb300', label: 'Battery' },
   { field: 'satellite_count', axisId: 'sat', domain: [0, 14], color: '#5aa9ff', label: 'Satellites' },
   { field: 'speed_mps', axisId: 'spd', domain: ['auto', 'auto'], color: '#c084fc', label: 'Speed' },
+  { field: 'accel_mps2', axisId: 'accel', domain: ['auto', 'auto'], color: '#ff9f5a', label: 'Accel' },
+  { field: 'yaw_rate_dps', axisId: 'yawrate', domain: ['auto', 'auto'], color: '#5affd6', label: 'Yaw rate' },
 ];
 
 export default function TelemetryStrip() {

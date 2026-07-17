@@ -7,6 +7,8 @@ const FILENAME_KEYWORDS = [
   { pattern: /fly[\s_-]?away/, label: 'Flyaway' },
   { pattern: /(signal|gps)[\s_-]?(jam|jammed|jamming|spoof|spoofed|spoofing|loss|lost|denied|denial)/, label: 'Signal Jammed' },
   { pattern: /batt(ery)?[\s_-]?(fail|failure|drain|died|dead|critical)/, label: 'Battery Failure' },
+  { pattern: /engine[\s_-]?(fail|failure)/, label: 'Engine Failure' },
+  { pattern: /(power|motor)[\s_-]?(fail|failure|loss|cut|cutout)/, label: 'Engine Failure' },
   { pattern: /loiter(ing)?/, label: 'Suspicious Loitering' },
   { pattern: /surveil(lance)?/, label: 'Suspicious Loitering' },
   { pattern: /(crash|impact|collision)/, label: 'Impact / Crash' },

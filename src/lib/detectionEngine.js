@@ -1,6 +1,12 @@
 // Deterministic rules engine. Pure functions only — no AI, no network, no randomness.
 // Each rule scans the parsed telemetry array and returns detected events shaped as:
 // { type, timestamp, description, evidence: { field, value, threshold } }
+//
+// Every window below is defined in elapsed time (seconds), not reading count —
+// real-world logs sample at wildly different rates (this app's synthetic
+// samples are ~1Hz; a real MAVROS setpoint stream can be ~50Hz+), so a
+// count-based window would fire 50x too eagerly on a fast log and never fire
+// on a slow one. Time-based windows behave the same regardless of sample rate.
 
 import { haversineDistanceMeters, headingDeltaDeg, centroid, secondsBetween } from './geo.js';
 import { OPTIONAL_NUMERIC_FIELDS } from './csvParser.js';
@@ -11,6 +17,7 @@ export const RULE_TYPES = [
   'battery_anomaly',
   'erratic_flight',
   'loiter',
+  'altitude_loss',
 ];
 
 // Fields each rule needs to be evaluated at all. Real-world logs don't all
@@ -23,25 +30,28 @@ const RULE_REQUIRED_FIELDS = {
   battery_anomaly: ['battery_pct'],
   erratic_flight: [],
   loiter: [],
+  altitude_loss: ['altitude_m'],
 };
 
 // Rules that read lat/lon directly — meaningless (and, since position is now
 // optional, potentially crash-prone) without a position in the log at all.
 const POSITION_DEPENDENT_RULES = new Set(['erratic_flight', 'loiter']);
 
-// Rule 1 — Signal loss: satellite_count drops below 3 for more than 2 consecutive readings.
+// Rule 1 — Signal loss: satellite_count drops below 3 for more than 2 seconds.
 export function detectSignalLoss(rows) {
   const THRESHOLD = 3;
+  const MIN_DURATION_S = 2;
   const events = [];
   let runStart = -1;
 
   const flush = (endExclusive) => {
-    const runLength = endExclusive - runStart;
-    if (runStart !== -1 && runLength > 2) {
+    if (runStart === -1) return;
+    const duration = secondsBetween(rows[runStart].timestamp, rows[endExclusive - 1].timestamp);
+    if (duration > MIN_DURATION_S) {
       events.push({
         type: 'signal_loss',
         timestamp: rows[runStart].timestamp,
-        description: `Satellite count fell to ${rows[runStart].satellite_count} and stayed below ${THRESHOLD} for ${runLength} consecutive readings`,
+        description: `Satellite count fell to ${rows[runStart].satellite_count} and stayed below ${THRESHOLD} for ${duration.toFixed(1)}s (${endExclusive - runStart} readings)`,
         evidence: {
           field: 'satellite_count',
           value: rows[runStart].satellite_count,
@@ -65,11 +75,11 @@ export function detectSignalLoss(rows) {
 }
 
 // Rule 2 — Impact/crash: altitude drops to near 0 combined with a sudden speed change
-// within a short window preceding it.
+// within a short time window preceding it.
 export function detectImpact(rows) {
   const ALTITUDE_THRESHOLD_M = 1.0;
   const SPEED_DELTA_THRESHOLD_MPS = 5;
-  const WINDOW = 3;
+  const WINDOW_S = 3;
   const events = [];
   let armed = true; // prevents re-firing while altitude stays low after the first hit
 
@@ -80,7 +90,11 @@ export function detectImpact(rows) {
     }
     if (!armed) continue;
 
-    const start = Math.max(0, i - WINDOW);
+    let start = i;
+    while (start > 0 && secondsBetween(rows[start - 1].timestamp, rows[i].timestamp) <= WINDOW_S) {
+      start--;
+    }
+
     let maxDelta = 0;
     for (let j = start; j < i; j++) {
       maxDelta = Math.max(maxDelta, Math.abs(rows[j + 1].speed_mps - rows[j].speed_mps));
@@ -155,23 +169,33 @@ export function detectErraticFlight(rows) {
   const MAX_PLAUSIBLE_SPEED_MPS = 25; // generous ceiling for a consumer drone
   const IMPLIED_SPEED_MULTIPLIER = 3; // implied speed beyond this vs. plausible ceiling = a GPS jump, not real flight
   const MAX_HEADING_RATE_DEG_S = 150; // headingDeltaDeg caps at 180, so this must stay below it
+  const POSITION_WINDOW_S = 1; // smooth position deltas over this much real time
+  const MIN_WINDOW_FRACTION = 0.5; // require at least half the window before judging speed, so the very start of a fast-sampled log doesn't look implausible just from too little elapsed time
   const events = [];
   let triggered = false;
+  let posStart = 0;
 
   for (let i = 1; i < rows.length; i++) {
-    const dt = secondsBetween(rows[i - 1].timestamp, rows[i].timestamp);
-    if (dt <= 0) continue;
+    while (posStart < i - 1 && secondsBetween(rows[posStart].timestamp, rows[i].timestamp) > POSITION_WINDOW_S) {
+      posStart++;
+    }
+    const positionDt = secondsBetween(rows[posStart].timestamp, rows[i].timestamp);
+    const headingDt = secondsBetween(rows[i - 1].timestamp, rows[i].timestamp);
+    if (headingDt <= 0) continue;
 
-    const distance = haversineDistanceMeters(
-      rows[i - 1].lat,
-      rows[i - 1].lon,
-      rows[i].lat,
-      rows[i].lon
-    );
-    const impliedSpeed = distance / dt;
-    const headingRate = headingDeltaDeg(rows[i - 1].heading_deg, rows[i].heading_deg) / dt;
+    // Raw consecutive-row position deltas are a poor signal on their own: a
+    // setpoint/commanded-trajectory stream commonly updates its target at a
+    // lower rate than the log's sample rate, so most rows repeat the same
+    // value and then jump in a discrete step — dividing that step by a tiny
+    // single-row dt looks like an enormous speed that never really happened.
+    // Averaging over POSITION_WINDOW_S of real time smooths that out while
+    // still catching a genuine large displacement.
+    const speedImplausible =
+      positionDt >= POSITION_WINDOW_S * MIN_WINDOW_FRACTION &&
+      haversineDistanceMeters(rows[posStart].lat, rows[posStart].lon, rows[i].lat, rows[i].lon) / positionDt >
+        MAX_PLAUSIBLE_SPEED_MPS * IMPLIED_SPEED_MULTIPLIER;
 
-    const speedImplausible = impliedSpeed > MAX_PLAUSIBLE_SPEED_MPS * IMPLIED_SPEED_MULTIPLIER;
+    const headingRate = headingDeltaDeg(rows[i - 1].heading_deg, rows[i].heading_deg) / headingDt;
     const headingImplausible = headingRate > MAX_HEADING_RATE_DEG_S;
 
     if (speedImplausible || headingImplausible) {
@@ -181,11 +205,12 @@ export function detectErraticFlight(rows) {
         const threshold = speedImplausible
           ? MAX_PLAUSIBLE_SPEED_MPS * IMPLIED_SPEED_MULTIPLIER
           : MAX_HEADING_RATE_DEG_S;
+        const impliedSpeed = haversineDistanceMeters(rows[posStart].lat, rows[posStart].lon, rows[i].lat, rows[i].lon) / positionDt;
         events.push({
           type: 'erratic_flight',
           timestamp: rows[i].timestamp,
           description: speedImplausible
-            ? `Position jumped at an implied ${impliedSpeed.toFixed(1)} m/s, beyond any plausible flight speed`
+            ? `Position moved at an implied ${impliedSpeed.toFixed(1)} m/s averaged over the preceding ${positionDt.toFixed(1)}s, beyond any plausible flight speed`
             : `Heading spun at ${headingRate.toFixed(0)} deg/s, beyond any plausible turn rate`,
           evidence: { field, value, threshold },
         });
@@ -200,33 +225,39 @@ export function detectErraticFlight(rows) {
 }
 
 // Rule 5 — Loiter pattern: the flight path revisits a small radius repeatedly for an
-// extended run of readings (tight loop/circle), as opposed to travelling through.
+// extended stretch of time (tight loop/circle), as opposed to travelling through.
 export function detectLoiter(rows) {
   const RADIUS_M = 20;
-  const MIN_READINGS = 15;
+  const MIN_DURATION_S = 15;
   const MIN_PATH_LENGTH_M = RADIUS_M * 2; // must actually move around, not just sit still
-  const MERGE_GAP = MIN_READINGS; // runs this close together are one anomaly, split by a skewed boundary window
+  const MERGE_GAP_S = MIN_DURATION_S; // runs this close together are one anomaly, split by a skewed boundary window
   const runs = [];
 
   let i = 0;
-  while (i < rows.length - MIN_READINGS) {
-    const window = rows.slice(i, i + MIN_READINGS);
+  while (i < rows.length) {
+    let j = i;
+    while (j < rows.length && secondsBetween(rows[i].timestamp, rows[j].timestamp) < MIN_DURATION_S) {
+      j++;
+    }
+    if (j >= rows.length) break; // not enough time left for a full window
+
+    const window = rows.slice(i, j + 1);
     const center = centroid(window);
     const maxDist = Math.max(
       ...window.map((r) => haversineDistanceMeters(center.lat, center.lon, r.lat, r.lon))
     );
     let pathLength = 0;
-    for (let j = 1; j < window.length; j++) {
+    for (let k = 1; k < window.length; k++) {
       pathLength += haversineDistanceMeters(
-        window[j - 1].lat,
-        window[j - 1].lon,
-        window[j].lat,
-        window[j].lon
+        window[k - 1].lat,
+        window[k - 1].lon,
+        window[k].lat,
+        window[k].lon
       );
     }
 
     if (maxDist <= RADIUS_M && pathLength >= MIN_PATH_LENGTH_M) {
-      let end = i + MIN_READINGS;
+      let end = j + 1;
       while (
         end < rows.length &&
         haversineDistanceMeters(center.lat, center.lon, rows[end].lat, rows[end].lon) <= RADIUS_M
@@ -243,19 +274,67 @@ export function detectLoiter(rows) {
   const merged = [];
   for (const run of runs) {
     const prev = merged[merged.length - 1];
-    if (prev && run.start - prev.end <= MERGE_GAP) {
+    if (prev && secondsBetween(rows[prev.end - 1].timestamp, rows[run.start].timestamp) <= MERGE_GAP_S) {
       prev.end = run.end;
     } else {
       merged.push({ ...run });
     }
   }
 
-  return merged.map(({ start, end }) => ({
-    type: 'loiter',
-    timestamp: rows[start].timestamp,
-    description: `Flight path circled within a ${RADIUS_M}m radius for ${end - start} consecutive readings instead of continuing on course`,
-    evidence: { field: 'lat', value: `${end - start} readings`, threshold: `${MIN_READINGS} readings within ${RADIUS_M}m` },
-  }));
+  return merged.map(({ start, end }) => {
+    const durationS = secondsBetween(rows[start].timestamp, rows[end - 1].timestamp);
+    return {
+      type: 'loiter',
+      timestamp: rows[start].timestamp,
+      description: `Flight path circled within a ${RADIUS_M}m radius for ${durationS.toFixed(0)}s (${end - start} readings) instead of continuing on course`,
+      evidence: {
+        field: 'lat',
+        value: `${durationS.toFixed(0)}s`,
+        threshold: `${MIN_DURATION_S}s within ${RADIUS_M}m`,
+      },
+    };
+  });
+}
+
+// Rule 6 — Altitude loss: a sustained, significant decline in altitude over a
+// time window without recovering — the signature of a real descent in
+// progress (engine or power failure, forced landing), as distinct from
+// `impact`'s single sharp spike at the very end of a flight. Catches a
+// controlled or uncontrolled descent even when the log ends before the
+// aircraft actually reaches the ground.
+export function detectAltitudeLoss(rows) {
+  const DROP_THRESHOLD_M = 8;
+  const WINDOW_S = 8;
+  const events = [];
+  let triggered = false;
+  let start = 0;
+
+  for (let i = 0; i < rows.length; i++) {
+    while (start < i && secondsBetween(rows[start].timestamp, rows[i].timestamp) > WINDOW_S) {
+      start++;
+    }
+
+    const drop = rows[start].altitude_m - rows[i].altitude_m;
+    if (drop >= DROP_THRESHOLD_M) {
+      if (!triggered) {
+        events.push({
+          type: 'altitude_loss',
+          timestamp: rows[i].timestamp,
+          description: `Altitude fell ${drop.toFixed(1)}m over ${WINDOW_S}s without recovering, from ${rows[start].altitude_m.toFixed(1)}m to ${rows[i].altitude_m.toFixed(1)}m`,
+          evidence: {
+            field: 'altitude_m',
+            value: rows[i].altitude_m,
+            threshold: DROP_THRESHOLD_M,
+          },
+        });
+        triggered = true;
+      }
+    } else {
+      triggered = false;
+    }
+  }
+
+  return events;
 }
 
 const RULES = {
@@ -264,6 +343,7 @@ const RULES = {
   battery_anomaly: detectBatteryAnomaly,
   erratic_flight: detectErraticFlight,
   loiter: detectLoiter,
+  altitude_loss: detectAltitudeLoss,
 };
 
 // Maps each rule type to the root cause(s) it is evidence for. Used to compute the
@@ -271,9 +351,10 @@ const RULES = {
 const ROOT_CAUSE_SUPPORT = {
   signal_loss: ['signal_jammed', 'flyaway'],
   erratic_flight: ['flyaway', 'signal_jammed'],
-  impact: ['crash', 'battery_failure'],
+  impact: ['crash', 'battery_failure', 'engine_failure'],
   battery_anomaly: ['battery_failure'],
   loiter: ['suspicious_loitering'],
+  altitude_loss: ['engine_failure', 'battery_failure'],
 };
 
 export const ROOT_CAUSE_LABELS = {
@@ -282,6 +363,7 @@ export const ROOT_CAUSE_LABELS = {
   crash: 'Impact / crash',
   battery_failure: 'Battery failure led to a forced descent',
   suspicious_loitering: 'Suspicious loitering over a fixed area',
+  engine_failure: 'Engine or power failure caused a sustained, uncommanded descent',
   none: 'No anomaly detected — flight nominal',
 };
 

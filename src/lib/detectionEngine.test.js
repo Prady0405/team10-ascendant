@@ -5,9 +5,35 @@ import {
   detectBatteryAnomaly,
   detectErraticFlight,
   detectLoiter,
+  detectAltitudeLoss,
   runDetectionEngine,
 } from './detectionEngine.js';
 import { buildNominalFlight, offsetLatLon } from './testFixtures.js';
+
+// Builds `count` readings `intervalS` seconds apart (rather than the fixed
+// 1s of buildNominalFlight) so rules can be checked at other sample rates —
+// a real MAVROS setpoint stream is commonly ~50Hz, versus this app's ~1Hz
+// synthetic samples.
+function buildFlightAtRate(count, intervalS, overrides = () => ({})) {
+  const start = new Date('2026-01-01T10:00:00Z').getTime();
+  const rows = [];
+  let lat = 37.7749;
+  let lon = -122.4194;
+  for (let i = 0; i < count; i++) {
+    const row = {
+      timestamp: new Date(start + i * intervalS * 1000).toISOString(),
+      lat,
+      lon,
+      altitude_m: 50,
+      speed_mps: 8,
+      satellite_count: 10,
+      heading_deg: 0,
+    };
+    Object.assign(row, overrides(i, row));
+    rows.push(row);
+  }
+  return rows;
+}
 
 describe('detectSignalLoss', () => {
   it('does not fire on a nominal flight', () => {
@@ -109,6 +135,44 @@ describe('detectErraticFlight', () => {
     expect(events.length).toBeGreaterThanOrEqual(1);
     expect(events[0].evidence.field).toBe('heading_deg');
   });
+
+  it('does not fire on a quantized/staged position stream sampled much faster than it updates', () => {
+    // Mirrors a real commanded-setpoint log: the target position only steps
+    // every ~10 readings while the log itself samples at 50Hz, so most
+    // consecutive rows repeat the same value and then jump by a small,
+    // physically real step. A naive single-row delta divides that step by a
+    // near-zero dt and looks like hundreds of m/s; this must not fire.
+    const rows = buildFlightAtRate(1000, 0.02, (i) => {
+      const step = Math.floor(i / 10); // one 1.6m step every 10 readings (~0.2s)
+      const moved = offsetLatLon(37.7749, -122.4194, 0, step * 1.6);
+      return { lat: moved.lat, lon: moved.lon };
+    });
+    expect(detectErraticFlight(rows)).toHaveLength(0);
+  });
+
+  it('does not misfire from too little elapsed time at the very start of a fast-sampled log', () => {
+    // The first few readings of a 50Hz log haven't accumulated a full
+    // smoothing window yet; a tiny real position change should not be judged
+    // implausible just because dt is still small.
+    const rows = buildFlightAtRate(50, 0.02, (i, row) => {
+      const moved = offsetLatLon(row.lat, row.lon, 0, 0.05); // 2.5 m/s, entirely plausible
+      return moved;
+    });
+    expect(detectErraticFlight(rows)).toHaveLength(0);
+  });
+
+  it('still fires on a genuine large jump sustained over a full second, even at 50Hz', () => {
+    const rows = buildFlightAtRate(200, 0.02, (i, row) => {
+      if (i === 100) {
+        const jumped = offsetLatLon(row.lat, row.lon, 0, 400); // 400m in one row
+        return jumped;
+      }
+      return {};
+    });
+    const events = detectErraticFlight(rows);
+    expect(events.length).toBeGreaterThanOrEqual(1);
+    expect(events[0].type).toBe('erratic_flight');
+  });
 });
 
 describe('detectLoiter', () => {
@@ -152,12 +216,12 @@ describe('detectLoiter', () => {
 });
 
 describe('runDetectionEngine', () => {
-  it('reports no anomaly and 0/5 confidence on a clean flight', () => {
+  it('reports no anomaly and 0/6 confidence on a clean flight', () => {
     const rows = buildNominalFlight(60);
     const result = runDetectionEngine(rows);
     expect(result.events).toHaveLength(0);
     expect(result.rootCause).toBe('none');
-    expect(result.confidenceLabel).toBe('0/5');
+    expect(result.confidenceLabel).toBe('0/6');
   });
 
   it('agrees on "signal_jammed" when signal_loss and erratic_flight both fire', () => {
@@ -166,15 +230,15 @@ describe('runDetectionEngine', () => {
       return {};
     });
     const result = runDetectionEngine(rows);
-    expect(result.confidence.checked).toBe(5);
+    expect(result.confidence.checked).toBe(6);
     expect(result.confidence.agreeing).toBeGreaterThanOrEqual(1);
     expect(['signal_jammed', 'flyaway']).toContain(result.rootCause);
   });
 
-  it('always checks all 5 rules regardless of which fire', () => {
+  it('always checks all 6 rules regardless of which fire', () => {
     const rows = buildNominalFlight(60);
     const result = runDetectionEngine(rows);
-    expect(Object.keys(result.eventsByType)).toHaveLength(5);
+    expect(Object.keys(result.eventsByType)).toHaveLength(6);
   });
 });
 
@@ -184,10 +248,12 @@ describe('runDetectionEngine with a restricted field set', () => {
     const rows = buildNominalFlight(60).map(({ lat, lon, timestamp }) => ({ lat, lon, timestamp }));
     const result = runDetectionEngine(rows, []);
     expect(result.applicableRules.sort()).toEqual(['erratic_flight', 'loiter'].sort());
-    expect(result.skippedRules.sort()).toEqual(['battery_anomaly', 'impact', 'signal_loss'].sort());
+    expect(result.skippedRules.sort()).toEqual(
+      ['altitude_loss', 'battery_anomaly', 'impact', 'signal_loss'].sort()
+    );
     expect(result.confidence.checked).toBe(2);
     expect(result.fieldsUnavailable.sort()).toEqual(
-      ['altitude_m', 'battery_pct', 'heading_deg', 'satellite_count', 'speed_mps'].sort()
+      ['accel_mps2', 'altitude_m', 'battery_pct', 'heading_deg', 'satellite_count', 'speed_mps', 'yaw_rate_dps'].sort()
     );
   });
 
@@ -209,7 +275,7 @@ describe('runDetectionEngine with a restricted field set', () => {
   it('defaults to checking every rule when availableFields is omitted', () => {
     const rows = buildNominalFlight(60);
     const result = runDetectionEngine(rows);
-    expect(result.applicableRules).toHaveLength(5);
+    expect(result.applicableRules).toHaveLength(6);
     expect(result.skippedRules).toHaveLength(0);
     expect(result.fieldsUnavailable).toHaveLength(0);
   });
@@ -224,7 +290,7 @@ describe('runDetectionEngine with hasPosition=false', () => {
     });
     const result = runDetectionEngine(rows, ['battery_pct', 'satellite_count'], false);
     expect(result.applicableRules.sort()).toEqual(['battery_anomaly', 'signal_loss'].sort());
-    expect(result.skippedRules.sort()).toEqual(['erratic_flight', 'impact', 'loiter'].sort());
+    expect(result.skippedRules.sort()).toEqual(['altitude_loss', 'erratic_flight', 'impact', 'loiter'].sort());
     expect(result.confidence.checked).toBe(2);
   });
 
@@ -233,5 +299,94 @@ describe('runDetectionEngine with hasPosition=false', () => {
     const result = runDetectionEngine(rows, undefined);
     expect(result.applicableRules).toContain('erratic_flight');
     expect(result.applicableRules).toContain('loiter');
+  });
+});
+
+describe('detectAltitudeLoss', () => {
+  it('does not fire on a flight holding steady altitude', () => {
+    const rows = buildNominalFlight(60);
+    expect(detectAltitudeLoss(rows)).toHaveLength(0);
+  });
+
+  it('fires on a sustained descent even when it never reaches near-ground altitude', () => {
+    // mirrors the real engine-failure dataset this rule was built for: altitude
+    // holds at 50m, then descends to ~31m over the final ~16s without recovering
+    // or ever reaching near-zero.
+    const rows = buildNominalFlight(120, (i) => {
+      if (i < 100) return {};
+      const t = i - 100;
+      return { altitude_m: Math.max(31, 50 - t * 1.2) };
+    });
+    const events = detectAltitudeLoss(rows);
+    expect(events.length).toBeGreaterThanOrEqual(1);
+    expect(events[0].type).toBe('altitude_loss');
+    expect(events[0].evidence.field).toBe('altitude_m');
+  });
+
+  it('does not fire on gentle sinusoidal altitude wobble', () => {
+    const rows = buildNominalFlight(120); // altitude_m = 50 + sin(i/10)*2, well under the 8m/8s threshold
+    expect(detectAltitudeLoss(rows)).toHaveLength(0);
+  });
+
+  it('only fires once for a single sustained descent, not once per reading', () => {
+    const rows = buildNominalFlight(120, (i) => {
+      if (i < 100) return {};
+      const t = i - 100;
+      return { altitude_m: Math.max(10, 50 - t * 2) };
+    });
+    expect(detectAltitudeLoss(rows)).toHaveLength(1);
+  });
+});
+
+describe('detection rules at a real-world sample rate (~50Hz, not this app\'s 1Hz synthetic data)', () => {
+  const INTERVAL_S = 0.02; // 50Hz, matching a typical MAVROS setpoint stream
+
+  it('detectSignalLoss requires 2 real seconds of low satellite_count, not 2 readings', () => {
+    // 2 readings at 50Hz is 40ms — nowhere near a real signal loss.
+    const rows = buildFlightAtRate(500, INTERVAL_S, (i) =>
+      i >= 100 && i < 102 ? { satellite_count: 0 } : { satellite_count: 10 }
+    );
+    expect(detectSignalLoss(rows)).toHaveLength(0);
+  });
+
+  it('detectSignalLoss still fires when satellite_count is actually low for multiple real seconds', () => {
+    // 200 readings at 50Hz = 4 real seconds.
+    const rows = buildFlightAtRate(500, INTERVAL_S, (i) =>
+      i >= 100 && i < 300 ? { satellite_count: 0 } : { satellite_count: 10 }
+    );
+    const events = detectSignalLoss(rows);
+    expect(events.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('detectImpact only looks a few real seconds back for the speed spike, not 3 readings', () => {
+    // speed spike 5 real seconds before the near-zero-altitude moment is well
+    // outside the 3-second lookback window and should not count; speed is
+    // flat (no delta) right at the altitude drop itself.
+    const rows = buildFlightAtRate(500, INTERVAL_S, (i) => {
+      if (i === 0) return { speed_mps: 20 };
+      if (i === 1) return { speed_mps: 8 };
+      if (i >= 250) return { altitude_m: 0.5 };
+      return {};
+    });
+    expect(detectImpact(rows)).toHaveLength(0);
+  });
+
+  it('detectLoiter requires 15 real seconds circling, not 15 readings (0.3s)', () => {
+    const start = new Date('2026-01-01T10:00:00Z').getTime();
+    const rows = [];
+    // 20 readings at 50Hz spanning only 0.4s — a real loiter takes far longer.
+    for (let i = 0; i < 20; i++) {
+      const angle = (i / 10) * 2 * Math.PI;
+      const { lat, lon } = offsetLatLon(37.7749, -122.4194, Math.sin(angle) * 12, Math.cos(angle) * 12);
+      rows.push({
+        timestamp: new Date(start + i * INTERVAL_S * 1000).toISOString(),
+        lat,
+        lon,
+        altitude_m: 40,
+        speed_mps: 4,
+        heading_deg: 0,
+      });
+    }
+    expect(detectLoiter(rows)).toHaveLength(0);
   });
 });
