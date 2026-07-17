@@ -17,8 +17,6 @@ export const RULE_TYPES = [
 // carry the same instruments, so a rule whose fields are missing from the
 // uploaded CSV is skipped entirely rather than run against absent data —
 // it never counts toward "rules checked" and never appears in the report.
-// lat/lon (and therefore erratic_flight and loiter) are always available,
-// since every parsed flight log has a position.
 const RULE_REQUIRED_FIELDS = {
   signal_loss: ['satellite_count'],
   impact: ['altitude_m', 'speed_mps'],
@@ -26,6 +24,10 @@ const RULE_REQUIRED_FIELDS = {
   erratic_flight: [],
   loiter: [],
 };
+
+// Rules that read lat/lon directly — meaningless (and, since position is now
+// optional, potentially crash-prone) without a position in the log at all.
+const POSITION_DEPENDENT_RULES = new Set(['erratic_flight', 'loiter']);
 
 // Rule 1 — Signal loss: satellite_count drops below 3 for more than 2 consecutive readings.
 export function detectSignalLoss(rows) {
@@ -287,10 +289,13 @@ export const ROOT_CAUSE_LABELS = {
 // confidence fraction. `availableFields` is the OPTIONAL_NUMERIC_FIELDS subset
 // actually present in the source CSV (see csvParser.js); it defaults to "all
 // of them" so existing callers that don't pass it keep checking every rule.
-export function runDetectionEngine(rows, availableFields = OPTIONAL_NUMERIC_FIELDS) {
-  const applicableTypes = RULE_TYPES.filter((type) =>
-    RULE_REQUIRED_FIELDS[type].every((field) => availableFields.includes(field))
-  );
+// `hasPosition` defaults to true for the same backward-compatibility reason —
+// position used to be guaranteed, and most callers still have it.
+export function runDetectionEngine(rows, availableFields = OPTIONAL_NUMERIC_FIELDS, hasPosition = true) {
+  const applicableTypes = RULE_TYPES.filter((type) => {
+    if (POSITION_DEPENDENT_RULES.has(type) && !hasPosition) return false;
+    return RULE_REQUIRED_FIELDS[type].every((field) => availableFields.includes(field));
+  });
   const skippedTypes = RULE_TYPES.filter((type) => !applicableTypes.includes(type));
 
   const eventsByType = {};

@@ -7,8 +7,8 @@ import { labelFromFilename } from './lib/filenameLabel.js';
 export default function App() {
   const [flight, setFlight] = useState(null);
 
-  const handleLoad = useCallback(({ rows, availableFields }, label) => {
-    setFlight({ rows, availableFields, label, reportedLabel: labelFromFilename(label) });
+  const handleLoad = useCallback(({ rows, availableFields, hasPosition, positionSource }, label) => {
+    setFlight({ rows, availableFields, hasPosition, positionSource, label, reportedLabel: labelFromFilename(label) });
   }, []);
 
   const handleReset = useCallback(() => setFlight(null), []);
@@ -26,6 +26,8 @@ export default function App() {
           <ReplayView
             rows={flight.rows}
             availableFields={flight.availableFields}
+            hasPosition={flight.hasPosition}
+            positionSource={flight.positionSource}
             sourceLabel={flight.label}
             reportedLabel={flight.reportedLabel}
             onReset={handleReset}

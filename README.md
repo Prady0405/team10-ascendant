@@ -51,18 +51,25 @@ model-generated number.
 
 ## Flexible CSV schema
 
-Not every flight log in the wild carries the same columns. Only a timestamp,
-latitude, and longitude column are required — everything else is analyzed if
+Not every flight log in the wild carries the same columns. Only a timestamp
+column is required — everything else, including position, is analyzed if
 present and skipped if it isn't. `src/lib/csvParser.js` recognizes both this
 app's own column names and common alternates (e.g. a MAVROS/ROS bag CSV
 export's `%time`, `field.latitude`, `field.velocity.x/y/z`, `field.yaw`), and
 derives fields it doesn't have directly: speed from a 3-axis velocity vector,
-heading in degrees from a yaw angle in radians, and ISO timestamps from
-nanosecond/second epoch values. The detection engine only runs rules whose
-required fields exist (`RULE_REQUIRED_FIELDS` in `src/lib/detectionEngine.js`),
-so the confidence denominator reflects how many rules could actually be
-checked, not always 5. The HUD, telemetry chart, and report panel likewise
-only render the fields the uploaded file actually has.
+heading in degrees from a yaw angle in radians, ISO timestamps from
+nanosecond/second epoch values, and — when there's no GPS lat/lon at all — a
+plottable position from a local `position.x/y` frame (common in ROS
+PositionTarget-style logs), converted around an arbitrary reference origin so
+the path's real shape and scale still show up on the map. If a log has no
+position data whatsoever, the map panel says so instead of rendering, and the
+position-dependent rules (erratic flight, loiter) are skipped rather than run
+against nothing. The detection engine only runs rules whose required fields
+(and position, where needed) exist (`RULE_REQUIRED_FIELDS` /
+`POSITION_DEPENDENT_RULES` in `src/lib/detectionEngine.js`), so the confidence
+denominator reflects how many rules could actually be checked, not always 5.
+The HUD, telemetry chart, and report panel likewise only render the fields
+the uploaded file actually has.
 
 If the uploaded filename hints at a failure type (e.g.
 `battery_failure_log.csv`), that's shown as a small "filed as" tag next to

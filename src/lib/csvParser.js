@@ -1,19 +1,36 @@
 import Papa from 'papaparse';
 
-// Every flight log must have a position and a time — that's the only fixed
-// requirement. Everything else is analyzed if a recognized column is present
-// and skipped if it isn't, since real-world logs (this app's own sample
-// schema, MAVROS/ROS bag CSV exports, etc.) don't all carry the same columns
-// or units.
+// A time column is the only fixed requirement. Position and every other
+// field are analyzed if a recognized column is present and skipped if it
+// isn't, since real-world logs (this app's own sample schema, MAVROS/ROS
+// bag CSV exports, etc.) don't all carry the same columns or units.
 export const OPTIONAL_NUMERIC_FIELDS = ['altitude_m', 'speed_mps', 'battery_pct', 'satellite_count', 'heading_deg'];
+
+// A reference origin used only to plot a *local*-frame flight (position.x/y
+// in meters, common in ROS PositionTarget-style logs with no GPS) onto the
+// map. The absolute location is arbitrary — the path's shape and distances
+// are what the detection engine and map actually care about.
+const LOCAL_ORIGIN_LAT = 37.8199;
+const LOCAL_ORIGIN_LON = -122.4783;
+const METERS_PER_DEG_LAT = 111320;
 
 // Column-name aliases for each canonical field, checked in priority order.
 // Covers this app's own schema plus common MAVROS/ROS bag CSV export names
 // (e.g. a mavros_msgs/PositionTarget topic dumped with `rostopic echo -p`).
 const COLUMN_ALIASES = {
   timestamp: ['timestamp', '%time', 'time', 'field.header.stamp'],
-  lat: ['lat', 'latitude', 'field.latitude'],
-  lon: ['lon', 'lng', 'longitude', 'field.longitude'],
+  lat: ['lat', 'latitude', 'field.latitude', 'field.lat', 'gps_lat', 'gps_latitude'],
+  lon: [
+    'lon',
+    'lng',
+    'long',
+    'longitude',
+    'field.longitude',
+    'field.lon',
+    'gps_lon',
+    'gps_lng',
+    'gps_longitude',
+  ],
   altitude_m: ['altitude_m', 'altitude', 'alt', 'field.altitude'],
   battery_pct: ['battery_pct', 'battery', 'battery_percent', 'battery_percentage', 'field.battery_remaining'],
   satellite_count: ['satellite_count', 'satellites', 'num_satellites', 'sats', 'field.satellites_visible'],
@@ -22,12 +39,17 @@ const COLUMN_ALIASES = {
 };
 
 // Component columns for fields this app can derive when there's no direct
-// column for them — a 3-axis velocity vector implies a scalar speed, and a
-// yaw angle in radians implies a heading in degrees.
+// column for them — a 3-axis velocity vector implies a scalar speed, a yaw
+// angle in radians implies a heading in degrees, and a local x/y position
+// (meters from an arbitrary origin, no GPS) implies a plottable lat/lon.
 const VELOCITY_COMPONENT_ALIASES = {
   x: ['field.velocity.x', 'velocity_x', 'velocity.x', 'vel_x'],
   y: ['field.velocity.y', 'velocity_y', 'velocity.y', 'vel_y'],
   z: ['field.velocity.z', 'velocity_z', 'velocity.z', 'vel_z'],
+};
+const LOCAL_POSITION_COMPONENT_ALIASES = {
+  x: ['field.position.x', 'position.x', 'position_x', 'local_x', 'pos_x'],
+  y: ['field.position.y', 'position.y', 'position_y', 'local_y', 'pos_y'],
 };
 const YAW_ALIASES = ['field.yaw', 'yaw', 'yaw_rad'];
 
@@ -68,10 +90,22 @@ function normalizeTimestamp(raw) {
   return Number.isNaN(date.getTime()) ? str : date.toISOString();
 }
 
-// Parses raw CSV text into { rows, availableFields }. `availableFields` is the
-// subset of OPTIONAL_NUMERIC_FIELDS this file actually provides — directly or
-// derived (speed from a velocity vector, heading from a yaw angle) — which the
-// detection engine and UI use to only analyze/display what's really there.
+// Converts local ENU meters (x = east, y = north) into a lat/lon near the
+// arbitrary reference origin, purely so a GPS-less local-frame log still has
+// something real to plot: the shape and scale of the derived path are exact,
+// only its placement on the globe is arbitrary.
+function localXYToLatLon(x, y) {
+  const lat = LOCAL_ORIGIN_LAT + y / METERS_PER_DEG_LAT;
+  const lon = LOCAL_ORIGIN_LON + x / (METERS_PER_DEG_LAT * Math.cos((LOCAL_ORIGIN_LAT * Math.PI) / 180));
+  return { lat, lon };
+}
+
+// Parses raw CSV text into { rows, availableFields, hasPosition, positionSource }.
+// `availableFields` is the subset of OPTIONAL_NUMERIC_FIELDS this file
+// provides — directly or derived — which the detection engine and UI use to
+// only analyze/display what's really there. `positionSource` is 'gps' when
+// real lat/lon columns were found, 'local' when position was derived from a
+// local x/y frame, or null when the log has no position data at all.
 export function parseFlightLogCSV(csvText) {
   const result = Papa.parse(csvText.trim(), {
     header: true,
@@ -91,18 +125,21 @@ export function parseFlightLogCSV(csvText) {
   const columns = Object.keys(data[0]);
 
   const timestampCol = resolveColumn(columns, COLUMN_ALIASES.timestamp);
-  const latCol = resolveColumn(columns, COLUMN_ALIASES.lat);
-  const lonCol = resolveColumn(columns, COLUMN_ALIASES.lon);
-
-  const missing = [];
-  if (!timestampCol) missing.push('timestamp');
-  if (!latCol) missing.push('lat');
-  if (!lonCol) missing.push('lon');
-  if (missing.length > 0) {
+  if (!timestampCol) {
     throw new FlightLogParseError(
-      `CSV is missing required column(s): ${missing.join(', ')}. Every flight log needs at least a timestamp, latitude, and longitude column.`
+      'CSV is missing a required column: timestamp. Every flight log needs at least a time column.'
     );
   }
+
+  const latCol = resolveColumn(columns, COLUMN_ALIASES.lat);
+  const lonCol = resolveColumn(columns, COLUMN_ALIASES.lon);
+  const hasGpsPosition = Boolean(latCol && lonCol);
+
+  const localXCol = !hasGpsPosition ? resolveColumn(columns, LOCAL_POSITION_COMPONENT_ALIASES.x) : null;
+  const localYCol = !hasGpsPosition ? resolveColumn(columns, LOCAL_POSITION_COMPONENT_ALIASES.y) : null;
+  const hasLocalPosition = !hasGpsPosition && Boolean(localXCol && localYCol);
+
+  const positionSource = hasGpsPosition ? 'gps' : hasLocalPosition ? 'local' : null;
 
   const altCol = resolveColumn(columns, COLUMN_ALIASES.altitude_m);
   const battCol = resolveColumn(columns, COLUMN_ALIASES.battery_pct);
@@ -137,8 +174,17 @@ export function parseFlightLogCSV(csvText) {
   const rows = data.map((row, i) => {
     const parsed = { timestamp: normalizeTimestamp(row[timestampCol]) };
 
-    parsed.lat = readNumber(row, latCol, 'lat', i);
-    parsed.lon = readNumber(row, lonCol, 'lon', i);
+    if (hasGpsPosition) {
+      parsed.lat = readNumber(row, latCol, 'lat', i);
+      parsed.lon = readNumber(row, lonCol, 'lon', i);
+    } else if (hasLocalPosition) {
+      const x = readNumber(row, localXCol, 'position.x', i);
+      const y = readNumber(row, localYCol, 'position.y', i);
+      const derived = localXYToLatLon(x, y);
+      parsed.lat = derived.lat;
+      parsed.lon = derived.lon;
+    }
+
     if (altCol) parsed.altitude_m = readNumber(row, altCol, 'altitude_m', i);
     if (battCol) parsed.battery_pct = readNumber(row, battCol, 'battery_pct', i);
     if (satCol) parsed.satellite_count = readNumber(row, satCol, 'satellite_count', i);
@@ -162,5 +208,5 @@ export function parseFlightLogCSV(csvText) {
     return parsed;
   });
 
-  return { rows, availableFields };
+  return { rows, availableFields, hasPosition: positionSource !== null, positionSource };
 }

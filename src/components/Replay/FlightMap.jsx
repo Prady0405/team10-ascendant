@@ -36,16 +36,29 @@ function MapController() {
   return null;
 }
 
-export default function FlightMap() {
+export default function FlightMap({ positionSource }) {
   const { rows, currentRow, highlightField } = useTimeline();
-  const path = useMemo(() => rows.map((r) => [r.lat, r.lon]), [rows]);
+  const hasPosition = typeof rows[0]?.lat === 'number';
+
+  const path = useMemo(() => (hasPosition ? rows.map((r) => [r.lat, r.lon]) : []), [rows, hasPosition]);
   const icon = useMemo(
     () => droneIcon(currentRow.heading_deg ?? 0, highlightField === 'lat' || highlightField === 'lon'),
     [currentRow.heading_deg, highlightField]
   );
 
+  if (!hasPosition) {
+    return (
+      <div className="flight-map flight-map-empty">
+        <p>No position data in this log — map unavailable.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flight-map">
+      {positionSource === 'local' && (
+        <span className="flight-map-badge mono">LOCAL FRAME — derived from position.x/y, not GPS</span>
+      )}
       <MapContainer
         center={path[0]}
         zoom={16}

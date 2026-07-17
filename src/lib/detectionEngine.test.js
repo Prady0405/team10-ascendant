@@ -214,3 +214,24 @@ describe('runDetectionEngine with a restricted field set', () => {
     expect(result.fieldsUnavailable).toHaveLength(0);
   });
 });
+
+describe('runDetectionEngine with hasPosition=false', () => {
+  it('skips erratic_flight and loiter (they need lat/lon) but still checks field-based rules', () => {
+    let battery = 100;
+    const rows = buildNominalFlight(100, (i) => {
+      battery -= i < 90 ? 0.05 : 0.4;
+      return { battery_pct: battery, satellite_count: 10 };
+    });
+    const result = runDetectionEngine(rows, ['battery_pct', 'satellite_count'], false);
+    expect(result.applicableRules.sort()).toEqual(['battery_anomaly', 'signal_loss'].sort());
+    expect(result.skippedRules.sort()).toEqual(['erratic_flight', 'impact', 'loiter'].sort());
+    expect(result.confidence.checked).toBe(2);
+  });
+
+  it('defaults hasPosition to true so existing callers keep checking every applicable rule', () => {
+    const rows = buildNominalFlight(60);
+    const result = runDetectionEngine(rows, undefined);
+    expect(result.applicableRules).toContain('erratic_flight');
+    expect(result.applicableRules).toContain('loiter');
+  });
+});

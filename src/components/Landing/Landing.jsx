@@ -92,8 +92,8 @@ export default function Landing({ onLoad }) {
         />
         <p className="landing-dropzone-title mono">DROP FLIGHT LOG (.CSV) OR CLICK TO BROWSE</p>
         <p className="landing-schema mono">
-          required: timestamp, lat, lon — optional, analyzed if present: altitude_m, speed_mps,
-          battery_pct, satellite_count, heading_deg
+          required: timestamp — optional, analyzed if present: lat/lon (or a local x/y position),
+          altitude_m, speed_mps, battery_pct, satellite_count, heading_deg
         </p>
       </motion.section>
 

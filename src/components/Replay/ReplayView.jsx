@@ -10,8 +10,19 @@ import Controls from './Controls.jsx';
 import ReportPanel from '../Report/ReportPanel.jsx';
 import './ReplayView.css';
 
-export default function ReplayView({ rows, availableFields, sourceLabel, reportedLabel, onReset }) {
-  const detection = useMemo(() => runDetectionEngine(rows, availableFields), [rows, availableFields]);
+export default function ReplayView({
+  rows,
+  availableFields,
+  hasPosition,
+  positionSource,
+  sourceLabel,
+  reportedLabel,
+  onReset,
+}) {
+  const detection = useMemo(
+    () => runDetectionEngine(rows, availableFields, hasPosition),
+    [rows, availableFields, hasPosition]
+  );
   const [narration, setNarration] = useState(null);
   const [narrationLoading, setNarrationLoading] = useState(true);
 
@@ -55,7 +66,7 @@ export default function ReplayView({ rows, availableFields, sourceLabel, reporte
 
         <div className="replay-main">
           <div className="replay-col-map">
-            <FlightMap />
+            <FlightMap positionSource={positionSource} />
             <TelemetryStrip />
             <Controls />
           </div>
