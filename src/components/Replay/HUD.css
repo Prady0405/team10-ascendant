@@ -1,0 +1,105 @@
+.hud {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.hud-title {
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  margin-bottom: 8px;
+}
+
+.hud-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 6px;
+  border-radius: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.hud-row:last-child {
+  border-bottom: none;
+}
+
+.hud-label {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.hud-value {
+  font-size: 20px;
+  color: var(--text-h);
+  font-weight: 500;
+}
+
+.hud-unit {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-left: 3px;
+}
+
+.hud-battery {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hud-battery-track {
+  width: 90px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-bright);
+  overflow: hidden;
+}
+
+.hud-battery-fill {
+  height: 100%;
+  transition: width 0.15s linear;
+}
+
+.hud-tone-ok {
+  background: var(--green);
+}
+
+.hud-tone-warn {
+  background: var(--amber);
+}
+
+.hud-tone-critical {
+  background: var(--red);
+}
+
+.hud-sats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hud-sat-dots {
+  display: flex;
+  gap: 3px;
+}
+
+.hud-sat-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border-bright);
+}
+
+.hud-sat-dot.active {
+  background: var(--green);
+}
+
+.hud-sat-dot.hud-tone-critical {
+  background: var(--red);
+}

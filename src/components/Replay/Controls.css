@@ -1,0 +1,37 @@
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+}
+
+.controls-play {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border-bright);
+  background: var(--bg-panel-raised);
+  color: var(--amber);
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.controls-scrubber {
+  flex: 1;
+  accent-color: var(--amber);
+  cursor: pointer;
+}
+
+.controls-time,
+.controls-frame {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}

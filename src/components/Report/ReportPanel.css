@@ -1,0 +1,94 @@
+.report-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.report-narrative {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.report-narrative-title {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--text-dim);
+}
+
+.report-loading,
+.report-empty {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.report-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.report-line {
+  position: relative;
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  color: var(--text);
+  font-family: inherit;
+  overflow: hidden;
+}
+
+.report-line:hover {
+  border-color: var(--border-bright);
+  background: var(--bg-panel-raised);
+}
+
+.report-line-active {
+  border-color: var(--amber);
+}
+
+.report-line-highlight {
+  position: absolute;
+  inset: 0;
+  background: var(--amber-dim);
+  border-radius: 8px;
+  z-index: 0;
+}
+
+.report-line-index,
+.report-line-text,
+.report-line-proof {
+  position: relative;
+  z-index: 1;
+}
+
+.report-line-index {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.report-line-text {
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.report-line-proof {
+  font-size: 11px;
+  color: var(--amber);
+  white-space: nowrap;
+}

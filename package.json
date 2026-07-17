@@ -1,0 +1,31 @@
+{
+  "name": "black-box",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "postinstall": "node scripts/generateSamples.mjs"
+  },
+  "dependencies": {
+    "framer-motion": "^12.42.2",
+    "leaflet": "^1.9.4",
+    "papaparse": "^5.5.4",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-leaflet": "^5.0.0",
+    "recharts": "^3.9.2"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "oxlint": "^1.71.0",
+    "vite": "^8.1.1",
+    "vitest": "^4.1.10"
+  }
+}
