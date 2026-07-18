@@ -1,0 +1,104 @@
+.incident-timeline {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--shadow-panel);
+}
+
+.incident-timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+}
+
+.incident-timeline-count {
+  color: var(--amber);
+}
+
+.incident-timeline-count-clean {
+  color: var(--green);
+}
+
+.incident-timeline-track {
+  position: relative;
+  height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--bg-panel-raised), var(--bg));
+  border: 1px solid var(--border-bright);
+  cursor: pointer;
+}
+
+.incident-timeline-playhead {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  background: var(--amber);
+  box-shadow: 0 0 8px var(--amber-glow);
+  transform: translateX(-1px);
+  transition: left 0.1s linear;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.incident-timeline-marker {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--bg-panel);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  z-index: 3;
+  padding: 0;
+}
+
+.incident-timeline-marker:hover {
+  transform: translate(-50%, -50%) scale(1.4);
+}
+
+.incident-timeline-marker-critical {
+  background: var(--red);
+  box-shadow: 0 0 6px var(--red-glow);
+}
+
+.incident-timeline-marker-warning {
+  background: var(--amber);
+  box-shadow: 0 0 6px var(--amber-glow);
+}
+
+.incident-timeline-marker-normal {
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green-glow);
+}
+
+.incident-timeline-tooltip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text);
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-bright);
+  border-radius: 6px;
+  padding: 6px 10px;
+  align-self: flex-start;
+  min-height: 26px;
+  transition: opacity 0.15s ease;
+}
+
+.incident-timeline-tooltip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}

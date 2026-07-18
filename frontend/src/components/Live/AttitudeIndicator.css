@@ -1,0 +1,93 @@
+.attitude-indicator {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  margin: 0 auto;
+}
+
+.attitude-bezel {
+  fill: none;
+  stroke: var(--border-bright);
+  stroke-width: 3;
+}
+
+.attitude-sky {
+  fill: #2d5f96;
+}
+
+.attitude-ground {
+  fill: #6b4a1e;
+}
+
+.attitude-horizon-line {
+  stroke: var(--text-h);
+  stroke-width: 1.5;
+}
+
+.attitude-marker {
+  stroke: var(--purple);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.attitude-flipped .attitude-bezel {
+  stroke: var(--red);
+  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.6));
+}
+
+.attitude-roll-tick {
+  stroke: var(--text-dim);
+  stroke-width: 1.5;
+}
+
+.attitude-pitch-rung {
+  stroke: var(--text-h);
+  stroke-width: 1;
+  opacity: 0.6;
+}
+
+.attitude-roll-pointer {
+  fill: var(--purple);
+  filter: drop-shadow(0 0 3px var(--purple-glow));
+}
+
+.attitude-readout {
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.attitude-interactive {
+  cursor: grab;
+  touch-action: none;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--cyan-dim);
+  transition: box-shadow 0.2s ease;
+}
+
+.attitude-interactive:hover {
+  box-shadow: 0 0 0 3px var(--cyan-glow);
+}
+
+.attitude-interactive:active {
+  cursor: grabbing;
+}
+
+.attitude-drag-hint {
+  position: absolute;
+  top: -18px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--cyan);
+  opacity: 0.9;
+  pointer-events: none;
+}

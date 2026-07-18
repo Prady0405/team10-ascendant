@@ -1,0 +1,135 @@
+.mission-dashboard {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: var(--shadow-panel);
+}
+
+.mission-dashboard-title {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--text-dim);
+}
+
+.stat-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-section-title {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--purple);
+  opacity: 0.85;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+
+.stat-tile {
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.stat-tile:hover {
+  border-color: var(--border-bright);
+  transform: translateY(-2px);
+}
+
+.stat-tile-label {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+
+.stat-tile-value {
+  font-size: 16px;
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+.stat-tile-unit {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-left: 2px;
+  font-weight: 400;
+}
+
+.integrity-card {
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.06), transparent 60%);
+  border: 1px solid var(--purple-dim);
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.integrity-title {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--purple);
+}
+
+.integrity-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.integrity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-dim);
+  gap: 12px;
+}
+
+.integrity-hash {
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-bright);
+  border-radius: 5px;
+  padding: 3px 8px;
+  color: var(--text);
+  font-size: 11px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.integrity-hash:hover {
+  border-color: var(--purple);
+  color: var(--purple);
+  box-shadow: var(--shadow-purple);
+}
+
+.integrity-hash-static {
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 3px 8px;
+  color: var(--text);
+  font-size: 11px;
+}
+
+.integrity-note {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin: 0;
+}

@@ -1,0 +1,51 @@
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+}
+
+.controls-play {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border-bright);
+  background: var(--bg-panel-raised);
+  color: var(--purple);
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.controls-play:hover {
+  border-color: var(--purple);
+  box-shadow: var(--shadow-purple);
+}
+
+.controls-play:active {
+  transform: scale(0.92);
+}
+
+.controls-scrubber {
+  flex: 1;
+  accent-color: var(--purple);
+  cursor: pointer;
+}
+
+.controls-scrubber::-webkit-slider-thumb {
+  box-shadow: 0 0 6px var(--purple-glow);
+}
+
+.controls-time,
+.controls-frame {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
