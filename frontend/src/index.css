@@ -1,0 +1,158 @@
+:root {
+  --bg: #07090c;
+  --bg-panel: #0e1218;
+  --bg-panel-raised: #131820;
+  --border: #232a35;
+  --border-bright: #37414f;
+  --text: #c7ced8;
+  --text-dim: #6b7583;
+  --text-h: #f2f4f7;
+  --amber: #ffb300;
+  --amber-dim: rgba(255, 179, 0, 0.15);
+  --amber-glow: rgba(255, 179, 0, 0.45);
+  --red: #ff4d4d;
+  --red-dim: rgba(255, 77, 77, 0.15);
+  --red-glow: rgba(255, 77, 77, 0.5);
+  --green: #3ddc84;
+  --green-dim: rgba(61, 220, 132, 0.15);
+  --green-glow: rgba(61, 220, 132, 0.45);
+  --cyan: #5aa9ff;
+  --cyan-dim: rgba(90, 169, 255, 0.15);
+  --cyan-glow: rgba(90, 169, 255, 0.45);
+  --purple: #c77dff;
+  --purple-dim: rgba(199, 125, 255, 0.15);
+
+  --shadow-panel: 0 8px 30px -12px rgba(0, 0, 0, 0.6);
+  --shadow-amber: 0 0 24px -4px var(--amber-glow);
+  --shadow-red: 0 0 24px -4px var(--red-glow);
+  --shadow-green: 0 0 24px -4px var(--green-glow);
+
+  --sans: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+
+  font: 16px/1.5 var(--sans);
+  color-scheme: dark;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  position: relative;
+}
+
+/* Ambient HUD backdrop: a faint blueprint grid + a slow vertical scan pass
+   + a radial vignette. Fixed and behind everything, pointer-events none —
+   sets the "telemetry instrument" mood without competing with content. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 179, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 179, 0, 0.05) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(ellipse 90% 80% at 50% 20%, black 40%, transparent 100%);
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255, 179, 0, 0.05), transparent 70%);
+}
+
+@keyframes scanline-pass {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+.scanline {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 140px;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(255, 179, 0, 0.035), transparent);
+  animation: scanline-pass 9s linear infinite;
+}
+
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--sans);
+  font-weight: 600;
+  color: var(--text-h);
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+}
+
+.mono {
+  font-family: var(--mono);
+}
+
+::selection {
+  background: var(--amber-dim);
+  color: var(--text-h);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-bright);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--amber);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scanline {
+    animation: none;
+    display: none;
+  }
+}

@@ -1,0 +1,160 @@
+.verdict-card {
+  border-radius: 10px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--shadow-panel);
+}
+
+.verdict-alert {
+  border-color: rgba(255, 77, 77, 0.4);
+  background: linear-gradient(180deg, var(--red-dim), var(--bg-panel) 60%);
+}
+
+.verdict-clear {
+  border-color: rgba(61, 220, 132, 0.35);
+}
+
+.verdict-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.verdict-label {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--text-dim);
+}
+
+.verdict-text {
+  font-size: 18px;
+  line-height: 1.4;
+  color: var(--text-h);
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.verdict-cause {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.verdict-fallback {
+  font-size: 11px;
+  color: var(--red);
+  letter-spacing: 0.02em;
+}
+
+.health-gauge {
+  position: relative;
+  flex-shrink: 0;
+  width: 84px;
+  height: 84px;
+}
+
+.health-gauge-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.health-gauge-value {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.health-gauge-caption {
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.verdict-risk {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.verdict-risk-title {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+}
+
+.verdict-risk-row {
+  display: grid;
+  grid-template-columns: 108px 1fr 40px;
+  align-items: center;
+  gap: 10px;
+}
+
+.verdict-risk-label {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.verdict-risk-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-bright);
+  overflow: hidden;
+}
+
+.verdict-risk-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.verdict-risk-value {
+  font-size: 12px;
+  text-align: right;
+}
+
+.verdict-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.verdict-confidence {
+  font-size: 12px;
+  color: var(--amber);
+}
+
+.verdict-speak {
+  background: transparent;
+  border: 1px solid var(--border-bright);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.verdict-speak:hover:not(:disabled) {
+  border-color: var(--amber);
+  color: var(--amber);
+  box-shadow: var(--shadow-amber);
+}
+
+.verdict-speak:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

@@ -1,0 +1,51 @@
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+}
+
+.controls-play {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border-bright);
+  background: var(--bg-panel-raised);
+  color: var(--amber);
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.controls-play:hover {
+  border-color: var(--amber);
+  box-shadow: var(--shadow-amber);
+}
+
+.controls-play:active {
+  transform: scale(0.92);
+}
+
+.controls-scrubber {
+  flex: 1;
+  accent-color: var(--amber);
+  cursor: pointer;
+}
+
+.controls-scrubber::-webkit-slider-thumb {
+  box-shadow: 0 0 6px var(--amber-glow);
+}
+
+.controls-time,
+.controls-frame {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
