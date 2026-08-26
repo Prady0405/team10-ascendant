@@ -1,11 +1,11 @@
-// BlackBox AI — ESP32 + MPU6050, WiFi/HTTP live-streaming firmware.
+// BlackBox — ESP32 + MPU6050, WiFi/HTTP live-streaming firmware.
 //
 // This is the "Go Live" path: the ESP32 connects to your WiFi and POSTs
 // JSON accelerometer packets straight to a live session on the backend —
 // no USB cable, no COM port, works from anywhere on the same network.
 //
 // Setup:
-//   1. Open the BlackBox AI web app, click "GO LIVE — ESP32 IMU".
+//   1. Open the BlackBox web app, click "GO LIVE — ESP32 IMU".
 //   2. It shows an endpoint line like:
 //        POST http://192.168.0.100:8000/live/a1b2c3d4e5f6/ingest
 //      Copy that FULL URL and paste it into INGEST_URL below.

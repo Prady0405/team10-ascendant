@@ -18,7 +18,7 @@ from utils.config import GEMINI_API_KEY, GEMINI_MODEL
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_INSTRUCTION = """You are an aviation incident report writer for AirFlare/BlackBox AI, \
+SYSTEM_INSTRUCTION = """You are an aviation incident report writer for BlackBox, \
 an enterprise drone flight-log diagnostics platform.
 
 You will be given deterministically computed mission statistics and a list of incidents, \

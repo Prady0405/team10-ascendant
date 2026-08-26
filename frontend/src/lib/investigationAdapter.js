@@ -1,4 +1,4 @@
-// Converts a backend investigation payload (see BlackBox AI's
+// Converts a backend investigation payload (see BlackBox's
 // services/summary.py) into the flat `rows` array the replay UI drives
 // off of. `raw_data` already uses the backend's native telemetry field
 // names (latitude, longitude, altitude, speed, battery, roll, pitch, yaw,

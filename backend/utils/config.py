@@ -1,4 +1,4 @@
-"""Central configuration and rule-engine thresholds for BlackBox AI.
+"""Central configuration and rule-engine thresholds for BlackBox.
 
 All magic numbers used by the deterministic rule engine live here so they
 can be tuned without touching detection logic.

@@ -142,7 +142,7 @@ ${formatIntegrity(integrity)}
 ================================================================================
 Every claim above cites a timestamp and telemetry index traceable to the
 raw data referenced in Section 8. This brief was generated automatically by
-BlackBox AI's deterministic rule engine, with narrative assistance from an
+BlackBox's deterministic rule engine, with narrative assistance from an
 AI layer instructed to summarize evidence only. Reference ${referenceId} / ${generatedAt}.
 ================================================================================
 `;

@@ -1,14 +1,12 @@
-# BlackBox AI — AirFlare
+# BlackBox
 
-**A drone flight-log and telemetry forensics platform.** Upload a flight-log CSV (or stream live telemetry from an ESP32+MPU6050, or simulate that same stream with zero hardware), and BlackBox AI reconstructs the flight, runs it through a deterministic rule engine, and produces a plain-English incident report where every claim links straight back to the exact data point that proves it — plus an insurance-ready liability brief and a cryptographic chain-of-custody hash so the report can't be silently altered after the fact.
-
-Pitched as **AirFlare**.
+**A drone flight-log and telemetry forensics platform.** Upload a flight-log CSV (or stream live telemetry from an ESP32+MPU6050, or simulate that same stream with zero hardware), and BlackBox reconstructs the flight, runs it through a deterministic rule engine, and produces a plain-English incident report where every claim links straight back to the exact data point that proves it — plus an insurance-ready liability brief and a cryptographic chain-of-custody hash so the report can't be silently altered after the fact.
 
 ---
 
 ## Why this exists
 
-Drone incidents — crashes, GPS spoofing, jamming, hardware failure — currently get investigated by someone manually eyeballing a CSV export, if they get investigated at all. There's no standard way to prove *why* a drone went down, which matters enormously for insurance claims, liability disputes, and regulatory compliance. BlackBox AI turns a raw telemetry log into a defensible, evidence-cited forensic report in seconds.
+Drone incidents — crashes, GPS spoofing, jamming, hardware failure — currently get investigated by someone manually eyeballing a CSV export, if they get investigated at all. There's no standard way to prove *why* a drone went down, which matters enormously for insurance claims, liability disputes, and regulatory compliance. BlackBox turns a raw telemetry log into a defensible, evidence-cited forensic report in seconds.
 
 ## Core design principle
 
@@ -49,7 +47,7 @@ If the backend is unreachable, the frontend falls back to a client-side parser/a
 ## Architecture
 
 ```
-blackbox-ai/
+blackbox/
 ├── backend/    FastAPI, Python, no database, no auth — fully local-first
 │   ├── main.py                 App entry, CORS, router registration
 │   ├── models/                 Pydantic models (telemetry, incidents)

@@ -1,4 +1,4 @@
-"""BlackBox AI backend entry point.
+"""BlackBox backend entry point.
 
 Run with: uvicorn main:app --reload
 """
@@ -10,7 +10,7 @@ from routes import analyze, health, live, report, upload
 from services import serial_bridge
 
 app = FastAPI(
-    title="BlackBox AI",
+    title="BlackBox",
     description="Explainable drone flight log diagnostics and incident investigation engine.",
     version="0.1.0",
 )

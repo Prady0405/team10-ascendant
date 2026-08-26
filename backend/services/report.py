@@ -167,7 +167,7 @@ Classification: Preliminary automated engineering analysis
 ================================================================================
 Every claim above cites a timestamp and telemetry index traceable to the
 raw data hashed in Section 8. This brief was generated automatically by
-BlackBox AI's deterministic rule engine, with narrative assistance from an
+BlackBox's deterministic rule engine, with narrative assistance from an
 AI layer instructed to summarize evidence only — it does not draw its own
 conclusions beyond what the evidence supports, and confidence figures are
 never self-reported by the AI. Reference {reference_id} / {generated_at}.

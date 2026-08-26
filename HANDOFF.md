@@ -1,6 +1,6 @@
-# BlackBox AI — Handoff Document
+# BlackBox — Handoff Document
 
-Pitched to hackathon judges as **"AirFlare"**. A drone flight-log / telemetry forensics platform: upload a CSV (or stream live from an ESP32+MPU6050), get a deterministic, evidence-cited investigation of what happened during the flight, an AI-narrated summary, and an insurance-ready liability brief — with cryptographic chain-of-custody hashing so the report can't be silently altered after the fact.
+Pitched to hackathon judges as **"BlackBox"**. A drone flight-log / telemetry forensics platform: upload a CSV (or stream live from an ESP32+MPU6050), get a deterministic, evidence-cited investigation of what happened during the flight, an AI-narrated summary, and an insurance-ready liability brief — with cryptographic chain-of-custody hashing so the report can't be silently altered after the fact.
 
 This file is written for **a new Claude session with zero prior context**. Read it top to bottom before touching code.
 
@@ -21,7 +21,7 @@ If you're asked to add a new incident type: write the detector in `rules.py` aga
 ## 2. Folder Structure
 
 ```
-blackbox-ai/
+blackbox/
 ├── backend/                     FastAPI, local-first, no DB, no auth
 │   ├── main.py                  App entry, CORS, router registration, serial bridge startup hook
 │   ├── requirements.txt

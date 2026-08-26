@@ -1,4 +1,4 @@
-// Thin client for the BlackBox AI backend. Every function here either
+// Thin client for the BlackBox backend. Every function here either
 // resolves with the parsed JSON body or throws — callers (Landing,
 // LiveView) decide whether to fall back to the local, client-side engine
 // when the backend is unreachable.

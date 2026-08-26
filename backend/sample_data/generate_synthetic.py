@@ -1,4 +1,4 @@
-"""Generates synthetic drone telemetry CSVs for demoing/testing BlackBox AI.
+"""Generates synthetic drone telemetry CSVs for demoing/testing BlackBox.
 
 Run directly to (re)generate the four bundled sample files:
     py generate_synthetic.py

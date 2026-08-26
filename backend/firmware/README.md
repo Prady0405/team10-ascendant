@@ -1,6 +1,6 @@
 # ESP32 + MPU6050 hardware setup
 
-Two ways to feed real IMU data into BlackBox AI. Both land in the exact
+Two ways to feed real IMU data into BlackBox. Both land in the exact
 same live-session pipeline (analytics -> rules -> statistics -> narration)
 — pick whichever is easier for your demo.
 
@@ -31,7 +31,7 @@ ESP32 needs to be on the **same WiFi network** as the machine running it.
    Windows may prompt to allow it — allow it for Private networks. If it
    doesn't prompt and the ESP32 can't connect, add a rule yourself:
    ```
-   New-NetFirewallRule -DisplayName "BlackBox AI" -Direction Inbound -LocalPort 8000 -Protocol TCP -Action Allow
+   New-NetFirewallRule -DisplayName "BlackBox" -Direction Inbound -LocalPort 8000 -Protocol TCP -Action Allow
    ```
    (run in an elevated PowerShell — this isn't something the assistant
    will do on your behalf, since it's a security-relevant setting.)

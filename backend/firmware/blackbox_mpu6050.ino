@@ -1,4 +1,4 @@
-// BlackBox AI — ESP32 + MPU6050 on-board diagnostic sentinel.
+// BlackBox — ESP32 + MPU6050 on-board diagnostic sentinel.
 //
 // Wiring (I2C, default ESP32 pins):
 //   ESP32 3V3 -> MPU6050 VCC
